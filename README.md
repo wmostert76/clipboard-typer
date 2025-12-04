@@ -7,7 +7,7 @@
   \_____|_|_|_|_|_| |_|\__,_|\___|_|  |___/\__\___|  |_|\___/ \___/|_.__/
 ```
 
-**Clipboard Typer** — Windows traytool dat je clipboard-inhoud **intypt** (geen plak-actie) na een vertraging, met instelbare typesnelheid en “Start met Windows”-toggle.
+**Clipboard Typer** — Windows tray tool that **types** your clipboard (no paste action) after a delay, with adjustable typing speed and a "Start with Windows" toggle.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows-blue)](#)
@@ -15,36 +15,36 @@
 [![Hotkey](https://img.shields.io/badge/Hotkey-Ctrl+Shift+V-green)](#)
 
 ## Highlights
-- **Ctrl+Shift+V**: typt de clipboard na standaard 5s.
-- **Tray-menu**: kies delay (5s/2s/0s) en typesnelheid (60/40/20/10 ms/teken).
-- **Start met Windows**: vinkje zet/haalt Run-key in HKCU.
-- **Unicode toetsaanslagen** via `SendInput(KEYEVENTF_UNICODE)` (emoji/accenten werken).
-- **Langzamer, betrouwbaarder** typen (extra mini-pauze) zodat tekens niet wegvallen.
+- **Ctrl+Shift+V**: types the clipboard after a default 5s delay.
+- **Tray menu**: choose delay (5s/2s/0s) and typing speed (60/40/20/10 ms per char).
+- **Start with Windows**: checkbox adds/removes Run key in HKCU.
+- **Unicode keystrokes** via `SendInput(KEYEVENTF_UNICODE)` (emoji/accents work).
+- **Deliberately slower** typing (extra micro pause) so characters don’t get dropped.
 
-## Snel starten
-1) Download of build `dist/ClipboardTyper.exe`.  
-2) Start het exe → icoon in de system tray.  
-3) Kopieer tekst → druk **Ctrl+Shift+V** → na de delay wordt het ingetikt.  
-4) Rechtsklik tray-icoon om delay, typesnelheid of “Start met Windows” te kiezen.
+## Quickstart
+1) Download or build `dist/ClipboardTyper.exe`.  
+2) Launch the exe → icon appears in the system tray.  
+3) Copy text → press **Ctrl+Shift+V** → after the delay it will be typed.  
+4) Right-click the tray icon for delay, typing speed, or "Start with Windows".
 
 ## Build
-Vereist: .NET Framework 4.x (csc.exe aanwezig op Windows).
+Requires: .NET Framework 4.x (csc.exe present on Windows).
 
 ```powershell
 cd clipboard-typer
 ./build.ps1
 ```
 
-Uitvoer: `dist/ClipboardTyper.exe`.
+Output: `dist/ClipboardTyper.exe`.
 
-## Waarom typen i.p.v. plakken?
-Sommige apps blokkeren Ctrl+V of detecteren plakken. Door echte toetsaanslagen te sturen, omzeil je dat. Typesnelheid is bewust rustiger voor betrouwbaarheid.
+## Why type instead of paste?
+Some apps block Ctrl+V or detect paste actions. Real keystrokes bypass that. Typing speed is intentionally a bit slower for reliability.
 
-## Tray-opties
+## Tray options
 - Delay: 5s / 2s / 0s
-- Typesnelheid: 60 / 40 / 20 / 10 ms per teken
-- Start met Windows: aan/uit (HKCU\Software\Microsoft\Windows\CurrentVersion\Run)
+- Typing speed: 60 / 40 / 20 / 10 ms per char
+- Start with Windows: on/off (HKCU\Software\Microsoft\Windows\CurrentVersion\Run)
 - Exit
 
-## Licentie
+## License
 MIT
