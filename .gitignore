@@ -1,0 +1,14 @@
+# Build outputs
+dist/
+bin/
+obj/
+
+# IDE files
+.vs/
+*.user
+*.suo
+*.userprefs
+
+# OS noise
+Thumbs.db
+Desktop.ini
