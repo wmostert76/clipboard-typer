@@ -358,6 +358,40 @@ namespace ClipboardTyper
 
         private void ShowInfoBox()
         {
+            using (var form = new Form())
+            {
+                form.Text = "Clipboard Typer";
+                form.StartPosition = FormStartPosition.CenterScreen;
+                form.ClientSize = new Size(1100, 650); // wide so ASCII banner fits
+
+                var textBox = new TextBox
+                {
+                    Multiline = true,
+                    ReadOnly = true,
+                    ScrollBars = ScrollBars.Vertical,
+                    Dock = DockStyle.Fill,
+                    Font = new Font("Consolas", 10f, FontStyle.Regular),
+                    Text = BuildInfoText()
+                };
+
+                var close = new Button
+                {
+                    Text = "Close",
+                    Dock = DockStyle.Bottom,
+                    Height = 38
+                };
+                close.Click += (s, e) => form.Close();
+
+                form.Controls.Add(textBox);
+                form.Controls.Add(close);
+                form.AcceptButton = close;
+
+                form.ShowDialog();
+            }
+        }
+
+        private string BuildInfoText()
+        {
             var sb = new StringBuilder();
             sb.AppendLine(Banner);
             sb.AppendLine();
@@ -367,7 +401,7 @@ namespace ClipboardTyper
             sb.AppendLine("Typing: " + _perCharDelayMs + " ms/char + 5 ms micro-pause");
             sb.AppendLine("WAM-Software (c) 1997-2025");
             sb.AppendLine("https://github.com/wmostert76/clipboard-typer");
-            MessageBox.Show(sb.ToString(), "Clipboard Typer", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return sb.ToString();
         }
     }
 }
