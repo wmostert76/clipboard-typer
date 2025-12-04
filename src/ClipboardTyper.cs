@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -362,16 +363,25 @@ namespace ClipboardTyper
             {
                 form.Text = "Clipboard Typer";
                 form.StartPosition = FormStartPosition.CenterScreen;
-                form.ClientSize = new Size(1100, 650); // wide so ASCII banner fits
+                form.ClientSize = new Size(1200, 750); // give banner room
 
-                var textBox = new TextBox
+                var bannerImage = RenderBannerImage();
+                var picture = new PictureBox
                 {
-                    Multiline = true,
-                    ReadOnly = true,
-                    ScrollBars = ScrollBars.Vertical,
+                    Image = bannerImage,
+                    Dock = DockStyle.Top,
+                    Height = bannerImage.Height + 10,
+                    SizeMode = PictureBoxSizeMode.CenterImage,
+                    BackColor = Color.White
+                };
+
+                var infoLabel = new Label
+                {
                     Dock = DockStyle.Fill,
-                    Font = new Font("Consolas", 10f, FontStyle.Regular),
-                    Text = BuildInfoText()
+                    Padding = new Padding(10),
+                    Font = new Font("Segoe UI", 10f, FontStyle.Regular),
+                    Text = BuildInfoText(),
+                    AutoEllipsis = false
                 };
 
                 var close = new Button
@@ -382,25 +392,64 @@ namespace ClipboardTyper
                 };
                 close.Click += (s, e) => form.Close();
 
-                form.Controls.Add(textBox);
+                form.Controls.Add(infoLabel);
+                form.Controls.Add(picture);
                 form.Controls.Add(close);
                 form.AcceptButton = close;
 
+                form.FormClosed += (s, e) =>
+                {
+                    if (picture.Image != null)
+                    {
+                        picture.Image.Dispose();
+                    }
+                };
+
                 form.ShowDialog();
+            }
+        }
+
+        private Bitmap RenderBannerImage()
+        {
+            var lines = Banner.Split(new[] { '\n' }, StringSplitOptions.None);
+            using (var font = new Font("Consolas", 11f, FontStyle.Regular))
+            {
+                var sampleSize = TextRenderer.MeasureText("W", font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding);
+                int charWidth = sampleSize.Width;
+                int lineHeight = sampleSize.Height;
+                int maxChars = lines.Max(l => l.Length);
+                int width = Math.Max(800, charWidth * maxChars + 20);
+                int height = Math.Max(300, lineHeight * lines.Length + 20);
+
+                var bmp = new Bitmap(width, height);
+                using (var g = Graphics.FromImage(bmp))
+                {
+                    g.Clear(Color.White);
+                    for (int i = 0; i < lines.Length; i++)
+                    {
+                        TextRenderer.DrawText(
+                            g,
+                            lines[i],
+                            font,
+                            new Point(10, 10 + i * lineHeight),
+                            Color.Black,
+                            TextFormatFlags.NoPadding | TextFormatFlags.NoClipping
+                        );
+                    }
+                }
+                return bmp;
             }
         }
 
         private string BuildInfoText()
         {
             var sb = new StringBuilder();
-            sb.AppendLine(Banner);
-            sb.AppendLine();
-            sb.AppendLine("Clipboard Typer " + VersionLabel);
+            sb.AppendLine("Version: " + VersionLabel);
             sb.AppendLine("Hotkey: Ctrl+Shift+V");
             sb.AppendLine("Delay: " + _delayMs + " ms");
             sb.AppendLine("Typing: " + _perCharDelayMs + " ms/char + 5 ms micro-pause");
-            sb.AppendLine("WAM-Software (c) 1997-2025");
-            sb.AppendLine("https://github.com/wmostert76/clipboard-typer");
+            sb.AppendLine("Credits: WAM-Software (c) 1997-2025");
+            sb.AppendLine("Repo: https://github.com/wmostert76/clipboard-typer");
             return sb.ToString();
         }
     }
