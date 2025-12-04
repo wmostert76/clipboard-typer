@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using System.Drawing;
 using System.Threading;
 using Microsoft.Win32;
+using System.Text;
 
 namespace ClipboardTyper
 {
@@ -30,6 +31,21 @@ namespace ClipboardTyper
         private const int HOTKEY_ID = 1;
         private const uint MOD_CONTROL = 0x0002;
         private const uint MOD_SHIFT = 0x0004;
+
+        private const string VersionLabel = "v0.2";
+        private const string Banner = @"██████╗ ██╗     ██╗██████╗ ██████╗  ██████╗  █████╗ ██████╗ ██████╗
+██╔════╝██║     ██║██╔══██╗██╔══██╗██╔═══██╗██╔══██╗██╔══██╗██╔══██╗
+██║     ██║     ██║██████╔╝██████╔╝██║   ██║███████║██████╔╝██║  ██║
+██║     ██║     ██║██╔═══╝ ██╔══██╗██║   ██║██╔══██║██╔══██╗██║  ██║
+╚██████╗███████╗██║██║     ██████╔╝╚██████╔╝██║  ██║██║  ██║██████╔╝
+ ╚═════╝╚══════╝╚═╝╚═╝     ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝
+      ████████╗██╗   ██╗██████╗ ███████╗██████╗
+      ╚══██╔══╝╚██╗ ██╔╝██╔══██╗██╔════╝██╔══██╗
+         ██║    ╚████╔╝ ██████╔╝█████╗  ██████╔╝
+         ██║     ╚██╔╝  ██╔═══╝ ██╔══╝  ██╔══██╗
+         ██║      ██║   ██║     ███████╗██║  ██║
+         ╚═╝      ╚═╝   ╚═╝     ╚══════╝╚═╝  ╚═╝
+         made by WAM-Software (c) 1997-2025";
 
         private const int MaxHistory = 10;
         private NotifyIcon _tray;
@@ -202,6 +218,7 @@ namespace ClipboardTyper
             };
 
             _tray.DoubleClick += (sender, args) => ShowBalloon(string.Format("Actief. Delay {0} ms. Hotkey Ctrl+Shift+V. Typen {1} ms/teken.", _delayMs, _perCharDelayMs));
+            _tray.MouseClick += TrayMouseClick;
         }
 
         private void SetDelay(int ms)
@@ -329,6 +346,28 @@ namespace ClipboardTyper
             {
                 _history.RemoveAt(_history.Count - 1);
             }
+        }
+
+        private void TrayMouseClick(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                ShowInfoBox();
+            }
+        }
+
+        private void ShowInfoBox()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine(Banner);
+            sb.AppendLine();
+            sb.AppendLine("Clipboard Typer " + VersionLabel);
+            sb.AppendLine("Hotkey: Ctrl+Shift+V");
+            sb.AppendLine("Delay: " + _delayMs + " ms");
+            sb.AppendLine("Typing: " + _perCharDelayMs + " ms/char + 5 ms micro-pause");
+            sb.AppendLine("WAM-Software (c) 1997-2025");
+            sb.AppendLine("https://github.com/wmostert76/clipboard-typer");
+            MessageBox.Show(sb.ToString(), "Clipboard Typer", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }
