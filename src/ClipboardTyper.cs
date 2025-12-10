@@ -1,10 +1,9 @@
 // ClipboardTyper.exe
-// Global hotkey (Ctrl+Shift+V) that types the current clipboard after a delay.
+// Global hotkey (Ctrl+Alt+V) that types the current clipboard after a delay.
 // WinForms tray app; uses SendInput with KEYEVENTF_UNICODE for true keystrokes.
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -14,6 +13,7 @@ using Microsoft.Win32;
 using System.Text;
 using System.Reflection;
 using System.IO;
+using System.Diagnostics;
 
 namespace ClipboardTyper
 {
@@ -33,9 +33,9 @@ namespace ClipboardTyper
         private const int WM_HOTKEY = 0x0312;
         private const int HOTKEY_ID = 1;
         private const uint MOD_CONTROL = 0x0002;
-        private const uint MOD_SHIFT = 0x0004;
+        private const uint MOD_ALT = 0x0001;
 
-        private const string VersionLabel = "v0.2";
+        private const string VersionLabel = "v0.3";
 
         private const int MaxHistory = 10;
         private NotifyIcon _tray;
@@ -113,7 +113,7 @@ namespace ClipboardTyper
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
-            RegisterHotKey(Handle, HOTKEY_ID, MOD_CONTROL | MOD_SHIFT, (int)Keys.V);
+            RegisterHotKey(Handle, HOTKEY_ID, MOD_CONTROL | MOD_ALT, (int)Keys.V);
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
@@ -207,7 +207,7 @@ namespace ClipboardTyper
                 ContextMenuStrip = _menu
             };
 
-            _tray.DoubleClick += (sender, args) => ShowBalloon(string.Format("Actief. Delay {0} ms. Hotkey Ctrl+Shift+V. Typen {1} ms/teken.", _delayMs, _perCharDelayMs));
+            _tray.DoubleClick += (sender, args) => ShowBalloon(string.Format("Actief. Delay {0} ms. Hotkey Ctrl+Alt+V. Typen {1} ms/teken.", _delayMs, _perCharDelayMs));
             _tray.MouseClick += TrayMouseClick;
 
             // Show a balloon tip on startup to draw attention to the tray icon
@@ -223,7 +223,7 @@ namespace ClipboardTyper
 
         private string Tooltip()
         {
-            return string.Format("Clipboard Typer - Ctrl+Shift+V - delay {0} ms - {1} ms/teken", _delayMs, _perCharDelayMs);
+            return string.Format("Clipboard Typer - Ctrl+Alt+V - delay {0} ms - {1} ms/teken", _delayMs, _perCharDelayMs);
         }
 
         private void ShowBalloon(string message)
@@ -304,7 +304,7 @@ namespace ClipboardTyper
             }
 
             _menu.Items.Add(new ToolStripSeparator());
-            _menu.Items.Add("Type clipboard (Ctrl+Shift+V)").Enabled = false;
+            _menu.Items.Add("Type clipboard (Ctrl+Alt+V)").Enabled = false;
             _menu.Items.Add(new ToolStripSeparator());
             _menu.Items.Add("Delay 5s", null, (sender, args) => SetDelay(5000));
             _menu.Items.Add("Delay 2s", null, (sender, args) => SetDelay(2000));
@@ -355,95 +355,163 @@ namespace ClipboardTyper
             {
                 form.Text = "Clipboard Typer Info";
                 form.StartPosition = FormStartPosition.CenterScreen;
-                form.Size = new Size(700, 850); // Increased height for more vertical space
+                form.Size = new Size(720, 880);
                 form.FormBorderStyle = FormBorderStyle.FixedDialog;
                 form.MaximizeBox = false;
                 form.MinimizeBox = false;
-                form.BackColor = Color.White; // Changed to White
+                form.BackColor = Color.FromArgb(245, 247, 250);
+                form.AutoScaleMode = AutoScaleMode.Dpi;
 
                 var bannerImage = LoadBannerImage();
+
+                var root = new TableLayoutPanel
+                {
+                    Dock = DockStyle.Fill,
+                    ColumnCount = 1,
+                    RowCount = 3,
+                    BackColor = form.BackColor
+                };
+                root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+                root.RowStyles.Add(new RowStyle(SizeType.Absolute, 280f));
+                root.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+                root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64f));
+
                 var picture = new PictureBox
                 {
                     Image = bannerImage,
-                    Dock = DockStyle.Top,
-                    Height = 350, // Adjusted height for banner
+                    Dock = DockStyle.Fill,
                     SizeMode = PictureBoxSizeMode.Zoom,
-                    BackColor = Color.Black
+                    BackColor = Color.Black,
+                    Margin = new Padding(0)
                 };
+                root.Controls.Add(picture, 0, 0);
 
-                // Main panel for all content below the picture
-                var mainContentPanel = new Panel
+                var scrollPanel = new Panel
                 {
                     Dock = DockStyle.Fill,
-                    Padding = new Padding(30) // Increased padding
+                    AutoScroll = true,
+                    BackColor = form.BackColor,
+                    Padding = new Padding(18, 14, 18, 10)
                 };
 
-                // Title Label
-                var titleLabel = new Label
+                var card = new TableLayoutPanel
+                {
+                    ColumnCount = 1,
+                    AutoSize = true,
+                    AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                    Dock = DockStyle.Top,
+                    BackColor = Color.White,
+                    Padding = new Padding(18, 16, 18, 16),
+                    Margin = new Padding(0)
+                };
+                card.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+
+                AddRow(card, new Label
                 {
                     Text = "CLIPBOARD TYPER " + VersionLabel,
                     Font = new Font("Segoe UI", 18f, FontStyle.Bold),
-                    ForeColor = Color.Black, // Changed to Black
+                    ForeColor = Color.FromArgb(32, 32, 32),
+                    AutoSize = true,
                     Dock = DockStyle.Top,
-                    TextAlign = ContentAlignment.MiddleCenter,
-                    Margin = new Padding(0, 20, 0, 30) // Increased top and bottom margin
-                };
+                    TextAlign = ContentAlignment.MiddleLeft,
+                    Margin = new Padding(0, 0, 0, 4)
+                });
 
-                // Table for key-value pairs
+                AddRow(card, new Label
+                {
+                    Text = "Types your clipboard with a configurable delay and pace.",
+                    Font = new Font("Segoe UI", 10.5f, FontStyle.Regular),
+                    ForeColor = Color.FromArgb(80, 80, 80),
+                    AutoSize = true,
+                    Dock = DockStyle.Top,
+                    TextAlign = ContentAlignment.MiddleLeft,
+                    Margin = new Padding(0, 0, 0, 14)
+                });
+
                 var tableLayoutPanel = new TableLayoutPanel
                 {
                     Dock = DockStyle.Top,
                     AutoSize = true,
+                    AutoSizeMode = AutoSizeMode.GrowAndShrink,
                     ColumnCount = 2,
                     BackColor = Color.Transparent,
                     CellBorderStyle = TableLayoutPanelCellBorderStyle.None,
-                    Padding = new Padding(15), // Increased padding
-                    Margin = new Padding(0, 0, 0, 30) // Increased bottom margin
+                    Padding = new Padding(4),
+                    Margin = new Padding(0, 0, 0, 12)
                 };
-                tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40F)); // Key column
-                tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60F)); // Value column
+                tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42F));
+                tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 58F));
 
-                // Add rows for information
-                AddInfoRow(tableLayoutPanel, "Hotkey:", "Ctrl + Shift + V", Color.Black, FontStyle.Bold); // Changed to Black
-                AddInfoRow(tableLayoutPanel, "Current Delay:", string.Format("{0} ms", _delayMs), Color.Black); // Changed to Black
-                AddInfoRow(tableLayoutPanel, "Typing Speed:", string.Format("{0} ms/char", _perCharDelayMs), Color.Black); // Changed to Black
-                AddInfoRow(tableLayoutPanel, "Repo:", "https://github.com/wmostert76/clipboard-typer", Color.Black); // Changed to Black
+                AddInfoRow(tableLayoutPanel, "Hotkey", "Ctrl + Alt + V", Color.FromArgb(32, 32, 32), FontStyle.Bold);
+                AddInfoRow(tableLayoutPanel, "Current delay", string.Format("{0} ms", _delayMs), Color.FromArgb(32, 32, 32));
+                AddInfoRow(tableLayoutPanel, "Typing speed", string.Format("{0} ms/char", _perCharDelayMs), Color.FromArgb(32, 32, 32));
+                AddInfoRow(tableLayoutPanel, "Start with Windows", IsStartupEnabled() ? "Enabled" : "Disabled", Color.FromArgb(32, 32, 32));
 
-                // Copyright Label
-                var copyrightLabel = new Label
+                AddRow(card, tableLayoutPanel);
+
+                AddRow(card, CreateSectionLabel("Repo & support"));
+                AddRow(card, CreateLinkLabel("https://github.com/wmostert76/clipboard-typer", "https://github.com/wmostert76/clipboard-typer"));
+
+                AddRow(card, CreateSectionLabel("Quick tips"));
+                AddRow(card, CreateBulletLabel("Left-click the tray icon to reopen this info box."));
+                AddRow(card, CreateBulletLabel("Right-click the tray icon for delay and typing-speed presets."));
+                AddRow(card, CreateBulletLabel("Use \"Start met Windows\" if you want it always ready after login."));
+                AddRow(card, CreateBulletLabel("Keystrokes are sent as Unicode, so emoji and accents work where paste is blocked."));
+
+                AddRow(card, CreateSectionLabel("About"));
+                AddRow(card, new Label
                 {
-                    Text = "© 2025 WAM-Software",
-                    Font = new Font("Segoe UI", 9f, FontStyle.Regular),
-                    ForeColor = Color.Black, // Changed to Black
-                    Dock = DockStyle.Bottom,
-                    TextAlign = ContentAlignment.MiddleCenter,
-                    Margin = new Padding(0, 30, 0, 20) // Increased top and bottom margin
+                    Text = "Made by WAM-Software (c) since 1997",
+                    Font = new Font("Segoe UI", 9.5f, FontStyle.Regular),
+                    ForeColor = Color.FromArgb(70, 70, 70),
+                    AutoSize = true,
+                    Margin = new Padding(0, 10, 0, 0)
+                });
+
+                var cardHost = new Panel
+                {
+                    Dock = DockStyle.Top,
+                    BackColor = form.BackColor,
+                    AutoSize = true,
+                    AutoSizeMode = AutoSizeMode.GrowAndShrink
+                };
+                card.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+                cardHost.Controls.Add(card);
+                scrollPanel.Controls.Add(cardHost);
+
+                root.Controls.Add(scrollPanel, 0, 1);
+
+                var bottomPanel = new Panel
+                {
+                    Dock = DockStyle.Fill,
+                    BackColor = Color.FromArgb(38, 43, 51)
                 };
 
                 var closeButton = new Button
                 {
                     Text = "Close",
-                    Dock = DockStyle.Bottom,
-                    Height = 45,
+                    AutoSize = false,
+                    Width = 130,
+                    Height = 38,
                     FlatStyle = FlatStyle.Flat,
-                    BackColor = Color.FromArgb(40, 44, 52),
+                    BackColor = Color.FromArgb(64, 132, 255),
                     ForeColor = Color.White,
                     Font = new Font("Segoe UI", 10f, FontStyle.Bold),
-                    Cursor = Cursors.Hand,
-                    Margin = new Padding(0, 0, 0, 20) // Increased bottom margin
+                    Cursor = Cursors.Hand
                 };
                 closeButton.FlatAppearance.BorderSize = 0;
                 closeButton.Click += (s, e) => form.Close();
 
-                // Add controls to main content panel
-                mainContentPanel.Controls.Add(copyrightLabel); // Added first so it docks bottom correctly
-                mainContentPanel.Controls.Add(tableLayoutPanel);
-                mainContentPanel.Controls.Add(titleLabel);
+                bottomPanel.Controls.Add(closeButton);
+                bottomPanel.Resize += (s, e) =>
+                {
+                    closeButton.Left = (bottomPanel.ClientSize.Width - closeButton.Width) / 2;
+                    closeButton.Top = (bottomPanel.ClientSize.Height - closeButton.Height) / 2;
+                };
+                bottomPanel.PerformLayout();
+                root.Controls.Add(bottomPanel, 0, 2);
 
-                // Add controls to form
-                form.Controls.Add(mainContentPanel);
-                form.Controls.Add(closeButton); // Close button below main content panel
-                form.Controls.Add(picture);
+                form.Controls.Add(root);
                 form.AcceptButton = closeButton;
 
                 form.FormClosed += (s, e) =>
@@ -463,22 +531,25 @@ namespace ClipboardTyper
             var keyLabel = new Label
             {
                 Text = key,
-                Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleRight,
+                AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                TextAlign = ContentAlignment.MiddleLeft,
                 Font = new Font("Segoe UI", 10f, FontStyle.Bold),
-                ForeColor = Color.Black, // Changed to Black
-                Padding = new Padding(8, 8, 5, 8) // Increased vertical padding
+                ForeColor = Color.Black,
+                Padding = new Padding(6, 6, 6, 6)
             };
             var valueLabel = new Label
             {
                 Text = value,
-                Dock = DockStyle.Fill,
+                AutoSize = true,
+                Anchor = AnchorStyles.Left,
                 TextAlign = ContentAlignment.MiddleLeft,
                 Font = new Font("Segoe UI", 10f, valueStyle),
                 ForeColor = valueColor,
-                Padding = new Padding(5, 8, 8, 8) // Increased vertical padding
+                Padding = new Padding(6, 6, 6, 6)
             };
 
+            table.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             table.Controls.Add(keyLabel);
             table.Controls.Add(valueLabel);
         }
@@ -497,7 +568,7 @@ namespace ClipboardTyper
                 }
             }
             catch { }
-            
+
             // Fallback if resource not found
             var bmp = new Bitmap(800, 200);
             using (var g = Graphics.FromImage(bmp))
@@ -513,6 +584,70 @@ namespace ClipboardTyper
             // This method is no longer used for dynamic text assembly as content is now in individual labels.
             // Keeping for potential future use or if some fallback is needed.
             return "";
+        }
+
+        private void AddRow(TableLayoutPanel layout, Control control)
+        {
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.Controls.Add(control);
+        }
+
+        private Label CreateSectionLabel(string text)
+        {
+            return new Label
+            {
+                Text = text,
+                Font = new Font("Segoe UI Semibold", 11.5f, FontStyle.Bold),
+                ForeColor = Color.FromArgb(40, 40, 40),
+                AutoSize = true,
+                Margin = new Padding(0, 6, 0, 6)
+            };
+        }
+
+        private Label CreateBulletLabel(string text)
+        {
+            return new Label
+            {
+                Text = "• " + text,
+                Font = new Font("Segoe UI", 10f, FontStyle.Regular),
+                ForeColor = Color.FromArgb(55, 55, 55),
+                AutoSize = true,
+                MaximumSize = new Size(620, 0),
+                Margin = new Padding(0, 2, 0, 2)
+            };
+        }
+
+        private LinkLabel CreateLinkLabel(string text, string url)
+        {
+            var link = new LinkLabel
+            {
+                Text = text,
+                AutoSize = true,
+                LinkColor = Color.FromArgb(33, 150, 243),
+                ActiveLinkColor = Color.FromArgb(255, 87, 34),
+                VisitedLinkColor = Color.FromArgb(106, 27, 154),
+                Font = new Font("Segoe UI", 10f, FontStyle.Regular),
+                Margin = new Padding(0, 0, 0, 8)
+            };
+
+            link.Links.Add(0, text.Length, url);
+            link.LinkClicked += (s, e) =>
+            {
+                try
+                {
+                    var target = e.Link.LinkData as string;
+                    if (!string.IsNullOrWhiteSpace(target))
+                    {
+                        Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ShowBalloon("Kon link niet openen: " + ex.Message);
+                }
+            };
+
+            return link;
         }
     }
 }
