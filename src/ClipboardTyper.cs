@@ -209,6 +209,9 @@ namespace ClipboardTyper
 
             _tray.DoubleClick += (sender, args) => ShowBalloon(string.Format("Actief. Delay {0} ms. Hotkey Ctrl+Shift+V. Typen {1} ms/teken.", _delayMs, _perCharDelayMs));
             _tray.MouseClick += TrayMouseClick;
+
+            // Show a balloon tip on startup to draw attention to the tray icon
+            ShowBalloon("Clipboard Typer is nu actief in het systeemvak.");
         }
 
         private void SetDelay(int ms)
