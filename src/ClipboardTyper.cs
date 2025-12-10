@@ -212,7 +212,7 @@ namespace ClipboardTyper
 
             _tray = new NotifyIcon
             {
-                Icon = SystemIcons.Information,
+                Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath),
                 Visible = true,
                 Text = Tooltip(),
                 ContextMenuStrip = _menu
