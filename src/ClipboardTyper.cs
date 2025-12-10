@@ -350,37 +350,71 @@ namespace ClipboardTyper
         {
             using (var form = new Form())
             {
-                form.Text = "Clipboard Typer";
+                form.Text = "Clipboard Typer Info";
                 form.StartPosition = FormStartPosition.CenterScreen;
-                form.Size = new Size(900, 700);
+                form.Size = new Size(700, 750); // Adjusted size for better layout
                 form.FormBorderStyle = FormBorderStyle.FixedDialog;
                 form.MaximizeBox = false;
                 form.MinimizeBox = false;
-                form.BackColor = Color.White;
+                form.BackColor = Color.FromArgb(240, 240, 240); // Light grey background
 
                 var bannerImage = LoadBannerImage();
                 var picture = new PictureBox
                 {
                     Image = bannerImage,
                     Dock = DockStyle.Top,
-                    Height = 400,
-                    SizeMode = PictureBoxSizeMode.Zoom, // Changed to Zoom for better fit
-                    BackColor = Color.Black // Assuming dark bg for banner
+                    Height = 300, // Reduced height for banner to leave more space for text
+                    SizeMode = PictureBoxSizeMode.Zoom,
+                    BackColor = Color.Black
                 };
 
-                var contentPanel = new Panel
+                // Main panel for all content below the picture
+                var mainContentPanel = new Panel
                 {
                     Dock = DockStyle.Fill,
-                    Padding = new Padding(30)
+                    Padding = new Padding(20)
                 };
 
-                var infoLabel = new Label
+                // Title Label
+                var titleLabel = new Label
                 {
-                    Dock = DockStyle.Fill,
-                    Font = new Font("Segoe UI", 11f, FontStyle.Regular),
-                    Text = BuildInfoText(),
-                    TextAlign = ContentAlignment.TopCenter,
-                    AutoEllipsis = true
+                    Text = "CLIPBOARD TYPER " + VersionLabel,
+                    Font = new Font("Segoe UI", 18f, FontStyle.Bold),
+                    ForeColor = Color.FromArgb(40, 44, 52), // Dark text
+                    Dock = DockStyle.Top,
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Margin = new Padding(0, 10, 0, 20) // Top and bottom margin
+                };
+
+                // Table for key-value pairs
+                var tableLayoutPanel = new TableLayoutPanel
+                {
+                    Dock = DockStyle.Top,
+                    AutoSize = true,
+                    ColumnCount = 2,
+                    BackColor = Color.Transparent,
+                    CellBorderStyle = TableLayoutPanelCellBorderStyle.None,
+                    Padding = new Padding(10),
+                    Margin = new Padding(0, 0, 0, 20)
+                };
+                tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40F)); // Key column
+                tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60F)); // Value column
+
+                // Add rows for information
+                AddInfoRow(tableLayoutPanel, "Hotkey:", "Ctrl + Shift + V", Color.Gray, FontStyle.Bold);
+                AddInfoRow(tableLayoutPanel, "Current Delay:", string.Format("{0} ms", _delayMs), Color.DarkGray);
+                AddInfoRow(tableLayoutPanel, "Typing Speed:", string.Format("{0} ms/char", _perCharDelayMs), Color.DarkGray);
+                AddInfoRow(tableLayoutPanel, "Repo:", "https://github.com/wmostert76/clipboard-typer", Color.Gray);
+
+                // Copyright Label
+                var copyrightLabel = new Label
+                {
+                    Text = "© 2025 WAM-Software",
+                    Font = new Font("Segoe UI", 9f, FontStyle.Regular),
+                    ForeColor = Color.Gray,
+                    Dock = DockStyle.Bottom,
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Margin = new Padding(0, 20, 0, 10)
                 };
 
                 var closeButton = new Button
@@ -389,18 +423,23 @@ namespace ClipboardTyper
                     Dock = DockStyle.Bottom,
                     Height = 45,
                     FlatStyle = FlatStyle.Flat,
-                    BackColor = Color.FromArgb(40, 44, 52), // Modern dark button
+                    BackColor = Color.FromArgb(40, 44, 52),
                     ForeColor = Color.White,
                     Font = new Font("Segoe UI", 10f, FontStyle.Bold),
-                    Cursor = Cursors.Hand
+                    Cursor = Cursors.Hand,
+                    Margin = new Padding(0, 0, 0, 10)
                 };
                 closeButton.FlatAppearance.BorderSize = 0;
                 closeButton.Click += (s, e) => form.Close();
 
-                contentPanel.Controls.Add(infoLabel);
-                
-                form.Controls.Add(contentPanel);
-                form.Controls.Add(closeButton);
+                // Add controls to main content panel
+                mainContentPanel.Controls.Add(copyrightLabel); // Added first so it docks bottom correctly
+                mainContentPanel.Controls.Add(tableLayoutPanel);
+                mainContentPanel.Controls.Add(titleLabel);
+
+                // Add controls to form
+                form.Controls.Add(mainContentPanel);
+                form.Controls.Add(closeButton); // Close button below main content panel
                 form.Controls.Add(picture);
                 form.AcceptButton = closeButton;
 
@@ -416,12 +455,36 @@ namespace ClipboardTyper
             }
         }
 
+        private void AddInfoRow(TableLayoutPanel table, string key, string value, Color valueColor, FontStyle valueStyle = FontStyle.Regular)
+        {
+            var keyLabel = new Label
+            {
+                Text = key,
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleRight,
+                Font = new Font("Segoe UI", 10f, FontStyle.Bold),
+                ForeColor = Color.FromArgb(60, 60, 60),
+                Padding = new Padding(5)
+            };
+            var valueLabel = new Label
+            {
+                Text = value,
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = new Font("Segoe UI", 10f, valueStyle),
+                ForeColor = valueColor,
+                Padding = new Padding(5)
+            };
+
+            table.Controls.Add(keyLabel);
+            table.Controls.Add(valueLabel);
+        }
+
         private Image LoadBannerImage()
         {
             try
             {
                 var assembly = Assembly.GetExecutingAssembly();
-                // The resource name is "banner.png" because we used /resource:banner.png without an identifier
                 using (var stream = assembly.GetManifestResourceStream("banner.png"))
                 {
                     if (stream != null)
@@ -444,17 +507,9 @@ namespace ClipboardTyper
 
         private string BuildInfoText()
         {
-            var sb = new StringBuilder();
-            sb.AppendLine();
-            sb.AppendLine("CLIPBOARD TYPER " + VersionLabel);
-            sb.AppendLine("__________________________________");
-            sb.AppendLine();
-            sb.AppendLine("Hotkey: Ctrl + Shift + V");
-            sb.AppendLine(string.Format("Current Delay: {0} ms", _delayMs));
-            sb.AppendLine(string.Format("Typing Speed: {0} ms/char", _perCharDelayMs));
-            sb.AppendLine();
-            sb.AppendLine("© 2025 WAM-Software");
-            return sb.ToString();
+            // This method is no longer used for dynamic text assembly as content is now in individual labels.
+            // Keeping for potential future use or if some fallback is needed.
+            return "";
         }
     }
 }
