@@ -359,7 +359,7 @@ namespace ClipboardTyper
                 form.FormBorderStyle = FormBorderStyle.FixedDialog;
                 form.MaximizeBox = false;
                 form.MinimizeBox = false;
-                form.BackColor = Color.FromArgb(240, 240, 240); // Light grey background
+                form.BackColor = Color.White; // Changed to White
 
                 var bannerImage = LoadBannerImage();
                 var picture = new PictureBox
@@ -383,7 +383,7 @@ namespace ClipboardTyper
                 {
                     Text = "CLIPBOARD TYPER " + VersionLabel,
                     Font = new Font("Segoe UI", 18f, FontStyle.Bold),
-                    ForeColor = Color.FromArgb(40, 44, 52), // Dark text
+                    ForeColor = Color.Black, // Changed to Black
                     Dock = DockStyle.Top,
                     TextAlign = ContentAlignment.MiddleCenter,
                     Margin = new Padding(0, 20, 0, 30) // Increased top and bottom margin
@@ -404,17 +404,17 @@ namespace ClipboardTyper
                 tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60F)); // Value column
 
                 // Add rows for information
-                AddInfoRow(tableLayoutPanel, "Hotkey:", "Ctrl + Shift + V", Color.Gray, FontStyle.Bold);
-                AddInfoRow(tableLayoutPanel, "Current Delay:", string.Format("{0} ms", _delayMs), Color.DarkGray);
-                AddInfoRow(tableLayoutPanel, "Typing Speed:", string.Format("{0} ms/char", _perCharDelayMs), Color.DarkGray);
-                AddInfoRow(tableLayoutPanel, "Repo:", "https://github.com/wmostert76/clipboard-typer", Color.Gray);
+                AddInfoRow(tableLayoutPanel, "Hotkey:", "Ctrl + Shift + V", Color.Black, FontStyle.Bold); // Changed to Black
+                AddInfoRow(tableLayoutPanel, "Current Delay:", string.Format("{0} ms", _delayMs), Color.Black); // Changed to Black
+                AddInfoRow(tableLayoutPanel, "Typing Speed:", string.Format("{0} ms/char", _perCharDelayMs), Color.Black); // Changed to Black
+                AddInfoRow(tableLayoutPanel, "Repo:", "https://github.com/wmostert76/clipboard-typer", Color.Black); // Changed to Black
 
                 // Copyright Label
                 var copyrightLabel = new Label
                 {
                     Text = "© 2025 WAM-Software",
                     Font = new Font("Segoe UI", 9f, FontStyle.Regular),
-                    ForeColor = Color.Gray,
+                    ForeColor = Color.Black, // Changed to Black
                     Dock = DockStyle.Bottom,
                     TextAlign = ContentAlignment.MiddleCenter,
                     Margin = new Padding(0, 30, 0, 20) // Increased top and bottom margin
@@ -466,7 +466,7 @@ namespace ClipboardTyper
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleRight,
                 Font = new Font("Segoe UI", 10f, FontStyle.Bold),
-                ForeColor = Color.FromArgb(60, 60, 60),
+                ForeColor = Color.Black, // Changed to Black
                 Padding = new Padding(8, 8, 5, 8) // Increased vertical padding
             };
             var valueLabel = new Label
