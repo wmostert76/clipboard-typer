@@ -7,5 +7,5 @@ if (-not (Test-Path $csc)) {
 
 if (-not (Test-Path "dist")) { New-Item -ItemType Directory -Path "dist" | Out-Null }
 
-& $csc /nologo /target:winexe /win32icon:app.ico /out:dist\\ClipboardTyper.exe /r:System.Windows.Forms.dll /r:System.Drawing.dll src\\ClipboardTyper.cs
+& $csc /nologo /target:winexe /win32icon:app.ico /resource:banner.png /out:dist\\ClipboardTyper.exe /r:System.Windows.Forms.dll /r:System.Drawing.dll src\\ClipboardTyper.cs
 Write-Host "Built dist\\ClipboardTyper.exe"

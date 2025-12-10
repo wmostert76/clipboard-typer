@@ -12,6 +12,8 @@ using System.Drawing;
 using System.Threading;
 using Microsoft.Win32;
 using System.Text;
+using System.Reflection;
+using System.IO;
 
 namespace ClipboardTyper
 {
@@ -34,19 +36,6 @@ namespace ClipboardTyper
         private const uint MOD_SHIFT = 0x0004;
 
         private const string VersionLabel = "v0.2";
-        private const string Banner = @"██████╗ ██╗     ██╗██████╗ ██████╗  ██████╗  █████╗ ██████╗ ██████╗
-██╔════╝██║     ██║██╔══██╗██╔══██╗██╔═══██╗██╔══██╗██╔══██╗██╔══██╗
-██║     ██║     ██║██████╔╝██████╔╝██║   ██║███████║██████╔╝██║  ██║
-██║     ██║     ██║██╔═══╝ ██╔══██╗██║   ██║██╔══██║██╔══██╗██║  ██║
-╚██████╗███████╗██║██║     ██████╔╝╚██████╔╝██║  ██║██║  ██║██████╔╝
- ╚═════╝╚══════╝╚═╝╚═╝     ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝
-      ████████╗██╗   ██╗██████╗ ███████╗██████╗
-      ╚══██╔══╝╚██╗ ██╔╝██╔══██╗██╔════╝██╔══██╗
-         ██║    ╚████╔╝ ██████╔╝█████╗  ██████╔╝
-         ██║     ╚██╔╝  ██╔═══╝ ██╔══╝  ██╔══██╗
-         ██║      ██║   ██║     ███████╗██║  ██║
-         ╚═╝      ╚═╝   ╚═╝     ╚══════╝╚═╝  ╚═╝
-         made by WAM-Software (c) 1997-2025";
 
         private const int MaxHistory = 10;
         private NotifyIcon _tray;
@@ -363,39 +352,57 @@ namespace ClipboardTyper
             {
                 form.Text = "Clipboard Typer";
                 form.StartPosition = FormStartPosition.CenterScreen;
-                form.ClientSize = new Size(1200, 750); // give banner room
+                form.Size = new Size(900, 700);
+                form.FormBorderStyle = FormBorderStyle.FixedDialog;
+                form.MaximizeBox = false;
+                form.MinimizeBox = false;
+                form.BackColor = Color.White;
 
-                var bannerImage = RenderBannerImage();
+                var bannerImage = LoadBannerImage();
                 var picture = new PictureBox
                 {
                     Image = bannerImage,
                     Dock = DockStyle.Top,
-                    Height = bannerImage.Height + 10,
-                    SizeMode = PictureBoxSizeMode.CenterImage,
-                    BackColor = Color.White
+                    Height = 400,
+                    SizeMode = PictureBoxSizeMode.Zoom, // Changed to Zoom for better fit
+                    BackColor = Color.Black // Assuming dark bg for banner
+                };
+
+                var contentPanel = new Panel
+                {
+                    Dock = DockStyle.Fill,
+                    Padding = new Padding(30)
                 };
 
                 var infoLabel = new Label
                 {
                     Dock = DockStyle.Fill,
-                    Padding = new Padding(10),
-                    Font = new Font("Segoe UI", 10f, FontStyle.Regular),
+                    Font = new Font("Segoe UI", 11f, FontStyle.Regular),
                     Text = BuildInfoText(),
-                    AutoEllipsis = false
+                    TextAlign = ContentAlignment.TopCenter,
+                    AutoEllipsis = true
                 };
 
-                var close = new Button
+                var closeButton = new Button
                 {
                     Text = "Close",
                     Dock = DockStyle.Bottom,
-                    Height = 38
+                    Height = 45,
+                    FlatStyle = FlatStyle.Flat,
+                    BackColor = Color.FromArgb(40, 44, 52), // Modern dark button
+                    ForeColor = Color.White,
+                    Font = new Font("Segoe UI", 10f, FontStyle.Bold),
+                    Cursor = Cursors.Hand
                 };
-                close.Click += (s, e) => form.Close();
+                closeButton.FlatAppearance.BorderSize = 0;
+                closeButton.Click += (s, e) => form.Close();
 
-                form.Controls.Add(infoLabel);
+                contentPanel.Controls.Add(infoLabel);
+                
+                form.Controls.Add(contentPanel);
+                form.Controls.Add(closeButton);
                 form.Controls.Add(picture);
-                form.Controls.Add(close);
-                form.AcceptButton = close;
+                form.AcceptButton = closeButton;
 
                 form.FormClosed += (s, e) =>
                 {
@@ -409,47 +416,44 @@ namespace ClipboardTyper
             }
         }
 
-        private Bitmap RenderBannerImage()
+        private Image LoadBannerImage()
         {
-            var lines = Banner.Split(new[] { '\n' }, StringSplitOptions.None);
-            using (var font = new Font("Consolas", 11f, FontStyle.Regular))
+            try
             {
-                var sampleSize = TextRenderer.MeasureText("W", font, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding);
-                int charWidth = sampleSize.Width;
-                int lineHeight = sampleSize.Height;
-                int maxChars = lines.Max(l => l.Length);
-                int width = Math.Max(800, charWidth * maxChars + 20);
-                int height = Math.Max(300, lineHeight * lines.Length + 20);
-
-                var bmp = new Bitmap(width, height);
-                using (var g = Graphics.FromImage(bmp))
+                var assembly = Assembly.GetExecutingAssembly();
+                // The resource name is "banner.png" because we used /resource:banner.png without an identifier
+                using (var stream = assembly.GetManifestResourceStream("banner.png"))
                 {
-                    g.Clear(Color.White);
-                    for (int i = 0; i < lines.Length; i++)
+                    if (stream != null)
                     {
-                        TextRenderer.DrawText(
-                            g,
-                            lines[i],
-                            font,
-                            new Point(10, 10 + i * lineHeight),
-                            Color.Black,
-                            TextFormatFlags.NoPadding | TextFormatFlags.NoClipping
-                        );
+                        return Image.FromStream(stream);
                     }
                 }
-                return bmp;
             }
+            catch { }
+            
+            // Fallback if resource not found
+            var bmp = new Bitmap(800, 200);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.Clear(Color.DarkBlue);
+                g.DrawString("Clipboard Typer", new Font("Arial", 24), Brushes.White, 10, 80);
+            }
+            return bmp;
         }
 
         private string BuildInfoText()
         {
             var sb = new StringBuilder();
-            sb.AppendLine("Version: " + VersionLabel);
-            sb.AppendLine("Hotkey: Ctrl+Shift+V");
-            sb.AppendLine("Delay: " + _delayMs + " ms");
-            sb.AppendLine("Typing: " + _perCharDelayMs + " ms/char + 5 ms micro-pause");
-            sb.AppendLine("Credits: WAM-Software (c) 1997-2025");
-            sb.AppendLine("Repo: https://github.com/wmostert76/clipboard-typer");
+            sb.AppendLine();
+            sb.AppendLine("CLIPBOARD TYPER " + VersionLabel);
+            sb.AppendLine("__________________________________");
+            sb.AppendLine();
+            sb.AppendLine("Hotkey: Ctrl + Shift + V");
+            sb.AppendLine(string.Format("Current Delay: {0} ms", _delayMs));
+            sb.AppendLine(string.Format("Typing Speed: {0} ms/char", _perCharDelayMs));
+            sb.AppendLine();
+            sb.AppendLine("© 2025 WAM-Software");
             return sb.ToString();
         }
     }
