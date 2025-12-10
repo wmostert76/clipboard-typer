@@ -352,7 +352,7 @@ namespace ClipboardTyper
             {
                 form.Text = "Clipboard Typer Info";
                 form.StartPosition = FormStartPosition.CenterScreen;
-                form.Size = new Size(700, 750); // Adjusted size for better layout
+                form.Size = new Size(700, 850); // Increased height for more vertical space
                 form.FormBorderStyle = FormBorderStyle.FixedDialog;
                 form.MaximizeBox = false;
                 form.MinimizeBox = false;
@@ -363,7 +363,7 @@ namespace ClipboardTyper
                 {
                     Image = bannerImage,
                     Dock = DockStyle.Top,
-                    Height = 300, // Reduced height for banner to leave more space for text
+                    Height = 350, // Adjusted height for banner
                     SizeMode = PictureBoxSizeMode.Zoom,
                     BackColor = Color.Black
                 };
@@ -372,7 +372,7 @@ namespace ClipboardTyper
                 var mainContentPanel = new Panel
                 {
                     Dock = DockStyle.Fill,
-                    Padding = new Padding(20)
+                    Padding = new Padding(30) // Increased padding
                 };
 
                 // Title Label
@@ -383,7 +383,7 @@ namespace ClipboardTyper
                     ForeColor = Color.FromArgb(40, 44, 52), // Dark text
                     Dock = DockStyle.Top,
                     TextAlign = ContentAlignment.MiddleCenter,
-                    Margin = new Padding(0, 10, 0, 20) // Top and bottom margin
+                    Margin = new Padding(0, 20, 0, 30) // Increased top and bottom margin
                 };
 
                 // Table for key-value pairs
@@ -394,8 +394,8 @@ namespace ClipboardTyper
                     ColumnCount = 2,
                     BackColor = Color.Transparent,
                     CellBorderStyle = TableLayoutPanelCellBorderStyle.None,
-                    Padding = new Padding(10),
-                    Margin = new Padding(0, 0, 0, 20)
+                    Padding = new Padding(15), // Increased padding
+                    Margin = new Padding(0, 0, 0, 30) // Increased bottom margin
                 };
                 tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40F)); // Key column
                 tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60F)); // Value column
@@ -414,7 +414,7 @@ namespace ClipboardTyper
                     ForeColor = Color.Gray,
                     Dock = DockStyle.Bottom,
                     TextAlign = ContentAlignment.MiddleCenter,
-                    Margin = new Padding(0, 20, 0, 10)
+                    Margin = new Padding(0, 30, 0, 20) // Increased top and bottom margin
                 };
 
                 var closeButton = new Button
@@ -427,7 +427,7 @@ namespace ClipboardTyper
                     ForeColor = Color.White,
                     Font = new Font("Segoe UI", 10f, FontStyle.Bold),
                     Cursor = Cursors.Hand,
-                    Margin = new Padding(0, 0, 0, 10)
+                    Margin = new Padding(0, 0, 0, 20) // Increased bottom margin
                 };
                 closeButton.FlatAppearance.BorderSize = 0;
                 closeButton.Click += (s, e) => form.Close();
@@ -464,7 +464,7 @@ namespace ClipboardTyper
                 TextAlign = ContentAlignment.MiddleRight,
                 Font = new Font("Segoe UI", 10f, FontStyle.Bold),
                 ForeColor = Color.FromArgb(60, 60, 60),
-                Padding = new Padding(5)
+                Padding = new Padding(8, 8, 5, 8) // Increased vertical padding
             };
             var valueLabel = new Label
             {
@@ -473,7 +473,7 @@ namespace ClipboardTyper
                 TextAlign = ContentAlignment.MiddleLeft,
                 Font = new Font("Segoe UI", 10f, valueStyle),
                 ForeColor = valueColor,
-                Padding = new Padding(5)
+                Padding = new Padding(5, 8, 8, 8) // Increased vertical padding
             };
 
             table.Controls.Add(keyLabel);
