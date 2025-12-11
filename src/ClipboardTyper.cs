@@ -3,6 +3,7 @@
 // WinForms tray app; uses SendInput with KEYEVENTF_UNICODE for true keystrokes.
 
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -34,6 +35,8 @@ namespace ClipboardTyper
         private const int HOTKEY_ID = 1;
         private const uint MOD_CONTROL = 0x0002;
         private const uint MOD_ALT = 0x0001;
+        private const uint MOD_SHIFT = 0x0004;
+        private const uint MOD_WIN = 0x0008;
 
         private const string VersionLabel = "v0.6";
         private NotifyIcon _tray;
@@ -41,6 +44,8 @@ namespace ClipboardTyper
         private int _delayMs = 5000;
         private int _perCharDelayMs = 60; // slower typing per character
         private ToolStripMenuItem _startupItem;
+        private uint _hotkeyModifiers = MOD_CONTROL | MOD_ALT;
+        private int _hotkeyKey = (int)Keys.V;
 
         [DllImport("user32.dll")]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, int vk);
@@ -104,6 +109,7 @@ namespace ClipboardTyper
             Visible = false;
             ShowInTaskbar = false;
             WindowState = FormWindowState.Minimized;
+            LoadHotkeyFromRegistry();
             PromoteOwnTrayIcon();
             BuildTray();
         }
@@ -111,7 +117,7 @@ namespace ClipboardTyper
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
-            RegisterHotKey(Handle, HOTKEY_ID, MOD_CONTROL | MOD_ALT, (int)Keys.V);
+            RegisterHotkeyCurrent();
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
@@ -204,7 +210,7 @@ namespace ClipboardTyper
                 ContextMenuStrip = _menu
             };
 
-            _tray.DoubleClick += (sender, args) => ShowBalloon(string.Format("Actief. Delay {0} ms. Hotkey Ctrl+Alt+V. Typen {1} ms/teken.", _delayMs, _perCharDelayMs));
+            _tray.DoubleClick += (sender, args) => ShowBalloon(string.Format("Actief. Delay {0} ms. Hotkey {1}. Typen {2} ms/teken.", _delayMs, HotkeyLabel(), _perCharDelayMs));
             _tray.MouseClick += TrayMouseClick;
 
             // Show a balloon tip on startup to draw attention to the tray icon
@@ -223,7 +229,7 @@ namespace ClipboardTyper
 
         private string Tooltip()
         {
-            return string.Format("Clipboard Typer - Ctrl+Alt+V - delay {0} ms - {1} ms/teken", _delayMs, _perCharDelayMs);
+            return string.Format("Clipboard Typer - {0} - delay {1} ms - {2} ms/teken", HotkeyLabel(), _delayMs, _perCharDelayMs);
         }
 
         private void ShowBalloon(string message)
@@ -239,6 +245,189 @@ namespace ClipboardTyper
             _tray.Text = Tooltip();
             ShowBalloon(string.Format("Typesnelheid ingesteld op {0} ms per teken", _perCharDelayMs));
             RebuildMenu();
+        }
+
+        private string HotkeyLabel()
+        {
+            return FormatHotkey(_hotkeyModifiers, (Keys)_hotkeyKey);
+        }
+
+        private static string FormatHotkey(uint modifiers, Keys key)
+        {
+            var parts = new List<string>();
+            if ((modifiers & MOD_CONTROL) != 0) parts.Add("Ctrl");
+            if ((modifiers & MOD_ALT) != 0) parts.Add("Alt");
+            if ((modifiers & MOD_SHIFT) != 0) parts.Add("Shift");
+            if ((modifiers & MOD_WIN) != 0) parts.Add("Win");
+            if (key != Keys.None)
+            {
+                parts.Add(key.ToString());
+            }
+            return string.Join(" + ", parts);
+        }
+
+        private static bool IsValidHotkey(uint modifiers, int key)
+        {
+            if (modifiers == 0) return false;
+            var k = (Keys)key;
+            if (k == Keys.ControlKey || k == Keys.Menu || k == Keys.ShiftKey || k == Keys.LWin || k == Keys.RWin) return false;
+            return Enum.IsDefined(typeof(Keys), k);
+        }
+
+        private void RegisterHotkeyCurrent()
+        {
+            if (!IsValidHotkey(_hotkeyModifiers, _hotkeyKey) || !RegisterHotKey(Handle, HOTKEY_ID, _hotkeyModifiers, _hotkeyKey))
+            {
+                _hotkeyModifiers = MOD_CONTROL | MOD_ALT;
+                _hotkeyKey = (int)Keys.V;
+                RegisterHotKey(Handle, HOTKEY_ID, _hotkeyModifiers, _hotkeyKey);
+            }
+        }
+
+        private void ApplyHotkey(uint modifiers, int key)
+        {
+            UnregisterHotKey(Handle, HOTKEY_ID);
+            if (!IsValidHotkey(modifiers, key) || !RegisterHotKey(Handle, HOTKEY_ID, modifiers, key))
+            {
+                ShowBalloon("Kon hotkey niet registreren. Kies een andere combinatie.");
+                RegisterHotkeyCurrent();
+                return;
+            }
+
+            _hotkeyModifiers = modifiers;
+            _hotkeyKey = key;
+            SaveHotkeyToRegistry();
+            _tray.Text = Tooltip();
+            RebuildMenu();
+            ShowBalloon("Hotkey ingesteld op " + HotkeyLabel());
+        }
+
+        private void LoadHotkeyFromRegistry()
+        {
+            try
+            {
+                using (var key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\\ClipboardTyper", false))
+                {
+                    if (key == null) return;
+                    var modsObj = key.GetValue("HotkeyModifiers");
+                    var keyObj = key.GetValue("HotkeyKey");
+                    if (modsObj != null && keyObj != null)
+                    {
+                        var mods = (int)modsObj;
+                        var hotkey = (int)keyObj;
+                        if (IsValidHotkey((uint)mods, hotkey))
+                        {
+                            _hotkeyModifiers = (uint)mods;
+                            _hotkeyKey = hotkey;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // ignore and fall back to defaults
+            }
+        }
+
+        private void SaveHotkeyToRegistry()
+        {
+            try
+            {
+                using (var key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\\ClipboardTyper"))
+                {
+                    if (key == null) return;
+                    key.SetValue("HotkeyModifiers", (int)_hotkeyModifiers, RegistryValueKind.DWord);
+                    key.SetValue("HotkeyKey", _hotkeyKey, RegistryValueKind.DWord);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowBalloon("Kon hotkey niet opslaan in HKCU: " + ex.Message);
+            }
+        }
+
+        private void ChangeHotkey()
+        {
+            using (var form = new Form())
+            {
+                form.Text = "Hotkey instellen";
+                form.StartPosition = FormStartPosition.CenterScreen;
+                form.Size = new Size(360, 180);
+                form.FormBorderStyle = FormBorderStyle.FixedDialog;
+                form.MaximizeBox = false;
+                form.MinimizeBox = false;
+                form.TopMost = true;
+
+                var info = new Label
+                {
+                    Text = "Druk op de gewenste toetscombinatie (minimaal 1 modifier).",
+                    Dock = DockStyle.Top,
+                    AutoSize = false,
+                    Height = 40,
+                    Padding = new Padding(10, 10, 10, 0)
+                };
+
+                var capture = new TextBox
+                {
+                    Dock = DockStyle.Top,
+                    ReadOnly = true,
+                    TextAlign = HorizontalAlignment.Center,
+                    Font = new Font("Segoe UI", 12f, FontStyle.Bold),
+                    Margin = new Padding(12),
+                    Height = 32
+                };
+
+                var panelButtons = new FlowLayoutPanel
+                {
+                    Dock = DockStyle.Bottom,
+                    FlowDirection = FlowDirection.RightToLeft,
+                    Height = 46,
+                    Padding = new Padding(8)
+                };
+
+                var ok = new Button { Text = "Opslaan", DialogResult = DialogResult.OK, Enabled = false, AutoSize = true, Padding = new Padding(10, 6, 10, 6) };
+                var cancel = new Button { Text = "Annuleren", DialogResult = DialogResult.Cancel, AutoSize = true, Padding = new Padding(10, 6, 10, 6) };
+                panelButtons.Controls.Add(ok);
+                panelButtons.Controls.Add(cancel);
+
+                Keys selectedKey = Keys.None;
+                uint selectedMods = 0;
+
+                capture.KeyDown += (s, e) =>
+                {
+                    e.SuppressKeyPress = true;
+                    selectedMods = 0;
+                    if (e.Control) selectedMods |= MOD_CONTROL;
+                    if (e.Alt) selectedMods |= MOD_ALT;
+                    if (e.Shift) selectedMods |= MOD_SHIFT;
+                    if (e.KeyCode == Keys.LWin || e.KeyCode == Keys.RWin) selectedMods |= MOD_WIN;
+                    selectedKey = e.KeyCode;
+
+                    if (selectedKey == Keys.ControlKey || selectedKey == Keys.Menu || selectedKey == Keys.ShiftKey || selectedKey == Keys.LWin || selectedKey == Keys.RWin)
+                    {
+                        capture.Text = "Kies ook een toets";
+                        ok.Enabled = false;
+                        return;
+                    }
+
+                    capture.Text = FormatHotkey(selectedMods, selectedKey);
+                    ok.Enabled = selectedMods != 0 && selectedKey != Keys.None;
+                };
+
+                capture.KeyUp += (s, e) => e.SuppressKeyPress = true;
+
+                form.Controls.Add(panelButtons);
+                form.Controls.Add(capture);
+                form.Controls.Add(info);
+                form.AcceptButton = ok;
+                form.CancelButton = cancel;
+
+                capture.Focus();
+                if (form.ShowDialog() == DialogResult.OK && ok.Enabled)
+                {
+                    ApplyHotkey(selectedMods, (int)selectedKey);
+                }
+            }
         }
 
         private bool IsStartupEnabled()
@@ -289,7 +478,8 @@ namespace ClipboardTyper
             if (_menu == null) return;
 
             _menu.Items.Clear();
-            _menu.Items.Add("Type clipboard (Ctrl+Alt+V)").Enabled = false;
+            _menu.Items.Add(string.Format("Type clipboard ({0})", HotkeyLabel())).Enabled = false;
+            _menu.Items.Add("Hotkey wijzigen...", null, (sender, args) => ChangeHotkey());
             _menu.Items.Add(new ToolStripSeparator());
             _menu.Items.Add(ActiveLabel("Delay 5s", _delayMs == 5000), null, (sender, args) => SetDelay(5000));
             _menu.Items.Add(ActiveLabel("Delay 2s", _delayMs == 2000), null, (sender, args) => SetDelay(2000));
@@ -467,7 +657,7 @@ namespace ClipboardTyper
                 tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42F));
                 tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 58F));
 
-                AddInfoRow(tableLayoutPanel, "Hotkey", "Ctrl + Alt + V", Color.FromArgb(32, 32, 32), FontStyle.Bold);
+                AddInfoRow(tableLayoutPanel, "Hotkey", HotkeyLabel(), Color.FromArgb(32, 32, 32), FontStyle.Bold);
                 AddInfoRow(tableLayoutPanel, "Current delay", string.Format("{0} ms", _delayMs), Color.FromArgb(32, 32, 32));
                 AddInfoRow(tableLayoutPanel, "Typing speed", string.Format("{0} ms/char", _perCharDelayMs), Color.FromArgb(32, 32, 32));
                 AddInfoRow(tableLayoutPanel, "Start with Windows", IsStartupEnabled() ? "Enabled" : "Disabled", Color.FromArgb(32, 32, 32));
