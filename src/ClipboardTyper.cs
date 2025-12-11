@@ -13,6 +13,7 @@ using System.Text;
 using System.Reflection;
 using System.IO;
 using System.Diagnostics;
+using Timer = System.Windows.Forms.Timer;
 
 namespace ClipboardTyper
 {
@@ -34,7 +35,7 @@ namespace ClipboardTyper
         private const uint MOD_CONTROL = 0x0002;
         private const uint MOD_ALT = 0x0001;
 
-        private const string VersionLabel = "v0.5";
+        private const string VersionLabel = "v0.6";
         private NotifyIcon _tray;
         private ContextMenuStrip _menu;
         private int _delayMs = 5000;
@@ -207,6 +208,7 @@ namespace ClipboardTyper
 
             // Show a balloon tip on startup to draw attention to the tray icon
             ShowBalloon("Clipboard Typer is nu actief in het systeemvak.");
+            EnsureTrayVisibleSoon();
         }
 
         private void SetDelay(int ms)
@@ -301,6 +303,27 @@ namespace ClipboardTyper
             _menu.Items.Add(_startupItem);
             _menu.Items.Add(new ToolStripSeparator());
             _menu.Items.Add("Exit", null, (sender, args) => Close());
+        }
+
+        private void EnsureTrayVisibleSoon()
+        {
+            EnsureTrayVisible();
+            var ensureTimer = new Timer { Interval = 2000 };
+            ensureTimer.Tick += (s, e) =>
+            {
+                EnsureTrayVisible();
+                ensureTimer.Stop();
+                ensureTimer.Dispose();
+            };
+            ensureTimer.Start();
+        }
+
+        private void EnsureTrayVisible()
+        {
+            if (_tray != null && !_tray.Visible)
+            {
+                _tray.Visible = true;
+            }
         }
 
         private static string ActiveLabel(string label, bool isActive)
