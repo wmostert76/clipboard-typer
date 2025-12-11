@@ -3,11 +3,11 @@
 // WinForms tray app; uses SendInput with KEYEVENTF_UNICODE for true keystrokes.
 
 using System;
+using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using System.Windows.Forms;
-using System.Drawing;
 using System.Threading;
+using System.Windows.Forms;
 using Microsoft.Win32;
 using System.Text;
 using System.Reflection;
@@ -34,7 +34,7 @@ namespace ClipboardTyper
         private const uint MOD_CONTROL = 0x0002;
         private const uint MOD_ALT = 0x0001;
 
-        private const string VersionLabel = "v0.4";
+        private const string VersionLabel = "v0.5";
         private NotifyIcon _tray;
         private ContextMenuStrip _menu;
         private int _delayMs = 5000;
@@ -214,6 +214,7 @@ namespace ClipboardTyper
             _delayMs = ms;
             _tray.Text = Tooltip();
             ShowBalloon(string.Format("Delay ingesteld op {0} ms", _delayMs));
+            RebuildMenu();
         }
 
         private string Tooltip()
@@ -269,6 +270,7 @@ namespace ClipboardTyper
                     }
                 }
                 _startupItem.Checked = enable;
+                _startupItem.Text = ActiveLabel("Start met Windows", enable);
                 ShowBalloon(enable ? "Opstarten met Windows: ingeschakeld" : "Opstarten met Windows: uit");
                 RebuildMenu();
             }
@@ -285,20 +287,25 @@ namespace ClipboardTyper
             _menu.Items.Clear();
             _menu.Items.Add("Type clipboard (Ctrl+Alt+V)").Enabled = false;
             _menu.Items.Add(new ToolStripSeparator());
-            _menu.Items.Add("Delay 5s", null, (sender, args) => SetDelay(5000));
-            _menu.Items.Add("Delay 2s", null, (sender, args) => SetDelay(2000));
-            _menu.Items.Add("Delay 0s", null, (sender, args) => SetDelay(0));
+            _menu.Items.Add(ActiveLabel("Delay 5s", _delayMs == 5000), null, (sender, args) => SetDelay(5000));
+            _menu.Items.Add(ActiveLabel("Delay 2s", _delayMs == 2000), null, (sender, args) => SetDelay(2000));
+            _menu.Items.Add(ActiveLabel("Delay 0s", _delayMs == 0), null, (sender, args) => SetDelay(0));
             _menu.Items.Add(new ToolStripSeparator());
-            _menu.Items.Add("Type snelheid: Extra rustig (60ms)", null, (sender, args) => SetTypeSpeed(60));
-            _menu.Items.Add("Type snelheid: Rustig (40ms)", null, (sender, args) => SetTypeSpeed(40));
-            _menu.Items.Add("Type snelheid: Normaal (20ms)", null, (sender, args) => SetTypeSpeed(20));
-            _menu.Items.Add("Type snelheid: Snel (10ms)", null, (sender, args) => SetTypeSpeed(10));
+            _menu.Items.Add(ActiveLabel("Type snelheid: Extra rustig (60ms)", _perCharDelayMs == 60), null, (sender, args) => SetTypeSpeed(60));
+            _menu.Items.Add(ActiveLabel("Type snelheid: Rustig (40ms)", _perCharDelayMs == 40), null, (sender, args) => SetTypeSpeed(40));
+            _menu.Items.Add(ActiveLabel("Type snelheid: Normaal (20ms)", _perCharDelayMs == 20), null, (sender, args) => SetTypeSpeed(20));
+            _menu.Items.Add(ActiveLabel("Type snelheid: Snel (10ms)", _perCharDelayMs == 10), null, (sender, args) => SetTypeSpeed(10));
             _menu.Items.Add(new ToolStripSeparator());
-            _startupItem = new ToolStripMenuItem("Start met Windows", null, (sender, args) => ToggleStartup());
+            _startupItem = new ToolStripMenuItem(ActiveLabel("Start met Windows", IsStartupEnabled()), null, (sender, args) => ToggleStartup());
             _startupItem.Checked = IsStartupEnabled();
             _menu.Items.Add(_startupItem);
             _menu.Items.Add(new ToolStripSeparator());
             _menu.Items.Add("Exit", null, (sender, args) => Close());
+        }
+
+        private static string ActiveLabel(string label, bool isActive)
+        {
+            return isActive ? "* " + label : label;
         }
 
         private void TrayMouseClick(object sender, MouseEventArgs e)
