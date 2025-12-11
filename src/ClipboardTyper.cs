@@ -3,7 +3,6 @@
 // WinForms tray app; uses SendInput with KEYEVENTF_UNICODE for true keystrokes.
 
 using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -35,15 +34,12 @@ namespace ClipboardTyper
         private const uint MOD_CONTROL = 0x0002;
         private const uint MOD_ALT = 0x0001;
 
-        private const string VersionLabel = "v0.3";
-
-        private const int MaxHistory = 10;
+        private const string VersionLabel = "v0.4";
         private NotifyIcon _tray;
         private ContextMenuStrip _menu;
         private int _delayMs = 5000;
         private int _perCharDelayMs = 60; // slower typing per character
         private ToolStripMenuItem _startupItem;
-        private readonly List<string> _history = new List<string>();
 
         [DllImport("user32.dll")]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, int vk);
@@ -157,7 +153,6 @@ namespace ClipboardTyper
             ShowBalloon(string.Format("Typen na {0:0.#}s...", _delayMs / 1000.0));
             await Task.Delay(_delayMs);
             TypeUnicode(text);
-            AddHistoryEntry(text);
         }
 
         private void TypeUnicode(string text)
@@ -288,22 +283,6 @@ namespace ClipboardTyper
             if (_menu == null) return;
 
             _menu.Items.Clear();
-            var header = _menu.Items.Add("History (last 10)");
-            header.Enabled = false;
-            if (_history.Count == 0)
-            {
-                _menu.Items.Add("   (empty)").Enabled = false;
-            }
-            else
-            {
-                for (int i = 0; i < _history.Count; i++)
-                {
-                    var label = string.Format("{0}. {1}", i + 1, _history[i]);
-                    _menu.Items.Add(label).Enabled = false;
-                }
-            }
-
-            _menu.Items.Add(new ToolStripSeparator());
             _menu.Items.Add("Type clipboard (Ctrl+Alt+V)").Enabled = false;
             _menu.Items.Add(new ToolStripSeparator());
             _menu.Items.Add("Delay 5s", null, (sender, args) => SetDelay(5000));
@@ -320,25 +299,6 @@ namespace ClipboardTyper
             _menu.Items.Add(_startupItem);
             _menu.Items.Add(new ToolStripSeparator());
             _menu.Items.Add("Exit", null, (sender, args) => Close());
-        }
-
-        private void AddHistoryEntry(string text)
-        {
-            string cleaned = (text ?? string.Empty).Replace("\r", " ").Replace("\n", " ");
-            if (cleaned.Length > 80)
-            {
-                cleaned = cleaned.Substring(0, 77) + "...";
-            }
-            if (string.IsNullOrWhiteSpace(cleaned))
-            {
-                cleaned = "(empty/whitespace)";
-            }
-
-            _history.Insert(0, cleaned);
-            if (_history.Count > MaxHistory)
-            {
-                _history.RemoveAt(_history.Count - 1);
-            }
         }
 
         private void TrayMouseClick(object sender, MouseEventArgs e)
