@@ -104,6 +104,7 @@ namespace ClipboardTyper
             Visible = false;
             ShowInTaskbar = false;
             WindowState = FormWindowState.Minimized;
+            PromoteOwnTrayIcon();
             BuildTray();
         }
 
@@ -208,6 +209,7 @@ namespace ClipboardTyper
 
             // Show a balloon tip on startup to draw attention to the tray icon
             ShowBalloon("Clipboard Typer is nu actief in het systeemvak.");
+            RefreshTrayVisibility();
             EnsureTrayVisibleSoon();
         }
 
@@ -320,9 +322,42 @@ namespace ClipboardTyper
 
         private void EnsureTrayVisible()
         {
-            if (_tray != null && !_tray.Visible)
+            RefreshTrayVisibility();
+        }
+
+        private void RefreshTrayVisibility()
+        {
+            if (_tray == null) return;
+            PromoteOwnTrayIcon();
+            _tray.Visible = false;
+            _tray.Visible = true;
+        }
+
+        private void PromoteOwnTrayIcon()
+        {
+            try
             {
-                _tray.Visible = true;
+                using (var root = Registry.CurrentUser.OpenSubKey(@"Control Panel\NotifyIconSettings", true))
+                {
+                    if (root == null) return;
+                    foreach (var name in root.GetSubKeyNames())
+                    {
+                        using (var sub = root.OpenSubKey(name, true))
+                        {
+                            if (sub == null) continue;
+                            var exe = sub.GetValue("ExecutablePath") as string;
+                            if (string.IsNullOrEmpty(exe)) continue;
+                            if (exe.EndsWith("ClipboardTyper.exe", StringComparison.OrdinalIgnoreCase))
+                            {
+                                sub.SetValue("IsPromoted", 1, RegistryValueKind.DWord);
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore if registry access is denied or unavailable.
             }
         }
 
