@@ -28,8 +28,7 @@ namespace ClipboardTyper
             {
                 if (!createdNew)
                 {
-                    // Optionally show a message, or just exit silently if that's preferred.
-                    // MessageBox.Show("Clipboard Typer is already running.", "Clipboard Typer", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("Clipboard Typer draait al. Kijk in het systeemvak (bij de klok).", "Clipboard Typer", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
 
@@ -49,7 +48,7 @@ namespace ClipboardTyper
         private const uint MOD_SHIFT = 0x0004;
         private const uint MOD_WIN = 0x0008;
 
-        private const string VersionLabel = "v0.9";
+        private const string VersionLabel = "v1.0";
         private NotifyIcon _tray;
         private ContextMenuStrip _menu;
         private Form _infoForm;
