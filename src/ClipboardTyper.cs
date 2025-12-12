@@ -23,9 +23,20 @@ namespace ClipboardTyper
         [STAThread]
         private static void Main()
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new TrayApp());
+            bool createdNew;
+            using (Mutex mutex = new Mutex(true, "ClipboardTyper_SingleInstance_Mutex", out createdNew))
+            {
+                if (!createdNew)
+                {
+                    // Optionally show a message, or just exit silently if that's preferred.
+                    // MessageBox.Show("Clipboard Typer is already running.", "Clipboard Typer", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                Application.Run(new TrayApp());
+            }
         }
     }
 
@@ -38,9 +49,10 @@ namespace ClipboardTyper
         private const uint MOD_SHIFT = 0x0004;
         private const uint MOD_WIN = 0x0008;
 
-        private const string VersionLabel = "v0.8";
+        private const string VersionLabel = "v0.9";
         private NotifyIcon _tray;
         private ContextMenuStrip _menu;
+        private Form _infoForm;
         private int _delayMs = 5000;
         private int _perCharDelayMs = 60; // slower typing per character
         private ToolStripMenuItem _startupItem;
@@ -566,179 +578,190 @@ namespace ClipboardTyper
 
         private void ShowInfoBox()
         {
-            using (var form = new Form())
+            if (_infoForm != null && !_infoForm.IsDisposed)
             {
-                form.Text = "Clipboard Typer Info";
-                form.StartPosition = FormStartPosition.CenterScreen;
-                form.Size = new Size(720, 880);
-                form.FormBorderStyle = FormBorderStyle.FixedDialog;
-                form.MaximizeBox = false;
-                form.MinimizeBox = false;
-                form.BackColor = Color.FromArgb(245, 247, 250);
-                form.AutoScaleMode = AutoScaleMode.Dpi;
-
-                var bannerImage = LoadBannerImage();
-
-                var root = new TableLayoutPanel
+                if (_infoForm.WindowState == FormWindowState.Minimized)
                 {
-                    Dock = DockStyle.Fill,
-                    ColumnCount = 1,
-                    RowCount = 3,
-                    BackColor = form.BackColor
-                };
-                root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
-                root.RowStyles.Add(new RowStyle(SizeType.Absolute, 280f));
-                root.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
-                root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64f));
-
-                var picture = new PictureBox
-                {
-                    Image = bannerImage,
-                    Dock = DockStyle.Fill,
-                    SizeMode = PictureBoxSizeMode.Zoom,
-                    BackColor = Color.Black,
-                    Margin = new Padding(0)
-                };
-                root.Controls.Add(picture, 0, 0);
-
-                var scrollPanel = new Panel
-                {
-                    Dock = DockStyle.Fill,
-                    AutoScroll = true,
-                    BackColor = form.BackColor,
-                    Padding = new Padding(18, 14, 18, 10)
-                };
-
-                var card = new TableLayoutPanel
-                {
-                    ColumnCount = 1,
-                    AutoSize = true,
-                    AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                    Dock = DockStyle.Top,
-                    BackColor = Color.White,
-                    Padding = new Padding(18, 16, 18, 16),
-                    Margin = new Padding(0)
-                };
-                card.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
-
-                AddRow(card, new Label
-                {
-                    Text = "CLIPBOARD TYPER " + VersionLabel,
-                    Font = new Font("Segoe UI", 18f, FontStyle.Bold),
-                    ForeColor = Color.FromArgb(32, 32, 32),
-                    AutoSize = true,
-                    Dock = DockStyle.Top,
-                    TextAlign = ContentAlignment.MiddleLeft,
-                    Margin = new Padding(0, 0, 0, 4)
-                });
-
-                AddRow(card, new Label
-                {
-                    Text = "Types your clipboard with a configurable delay and pace.",
-                    Font = new Font("Segoe UI", 10.5f, FontStyle.Regular),
-                    ForeColor = Color.FromArgb(80, 80, 80),
-                    AutoSize = true,
-                    Dock = DockStyle.Top,
-                    TextAlign = ContentAlignment.MiddleLeft,
-                    Margin = new Padding(0, 0, 0, 14)
-                });
-
-                var tableLayoutPanel = new TableLayoutPanel
-                {
-                    Dock = DockStyle.Top,
-                    AutoSize = true,
-                    AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                    ColumnCount = 2,
-                    BackColor = Color.Transparent,
-                    CellBorderStyle = TableLayoutPanelCellBorderStyle.None,
-                    Padding = new Padding(4),
-                    Margin = new Padding(0, 0, 0, 12)
-                };
-                tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42F));
-                tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 58F));
-
-                AddInfoRow(tableLayoutPanel, "Hotkey", HotkeyLabel(), Color.FromArgb(32, 32, 32), FontStyle.Bold);
-                AddInfoRow(tableLayoutPanel, "Current delay", string.Format("{0} ms", _delayMs), Color.FromArgb(32, 32, 32));
-                AddInfoRow(tableLayoutPanel, "Typing speed", string.Format("{0} ms/char", _perCharDelayMs), Color.FromArgb(32, 32, 32));
-                AddInfoRow(tableLayoutPanel, "Start with Windows", IsStartupEnabled() ? "Enabled" : "Disabled", Color.FromArgb(32, 32, 32));
-
-                AddRow(card, tableLayoutPanel);
-
-                AddRow(card, CreateSectionLabel("Repo & support"));
-                AddRow(card, CreateLinkLabel("https://github.com/wmostert76/clipboard-typer", "https://github.com/wmostert76/clipboard-typer"));
-
-                AddRow(card, CreateSectionLabel("Quick tips"));
-                AddRow(card, CreateBulletLabel("Left-click the tray icon to reopen this info box."));
-                AddRow(card, CreateBulletLabel("Right-click the tray icon for delay and typing-speed presets."));
-                AddRow(card, CreateBulletLabel("Use \"Start met Windows\" if you want it always ready after login."));
-                AddRow(card, CreateBulletLabel("Keystrokes are sent as Unicode, so emoji and accents work where paste is blocked."));
-
-                AddRow(card, CreateSectionLabel("About"));
-                AddRow(card, new Label
-                {
-                    Text = "Made by WAM-Software (c) since 1997",
-                    Font = new Font("Segoe UI", 9.5f, FontStyle.Regular),
-                    ForeColor = Color.FromArgb(70, 70, 70),
-                    AutoSize = true,
-                    Margin = new Padding(0, 10, 0, 0)
-                });
-
-                var cardHost = new Panel
-                {
-                    Dock = DockStyle.Top,
-                    BackColor = form.BackColor,
-                    AutoSize = true,
-                    AutoSizeMode = AutoSizeMode.GrowAndShrink
-                };
-                card.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-                cardHost.Controls.Add(card);
-                scrollPanel.Controls.Add(cardHost);
-
-                root.Controls.Add(scrollPanel, 0, 1);
-
-                var bottomPanel = new Panel
-                {
-                    Dock = DockStyle.Fill,
-                    BackColor = Color.FromArgb(38, 43, 51)
-                };
-
-                var closeButton = new Button
-                {
-                    Text = "Close",
-                    AutoSize = false,
-                    Width = 130,
-                    Height = 38,
-                    FlatStyle = FlatStyle.Flat,
-                    BackColor = Color.FromArgb(64, 132, 255),
-                    ForeColor = Color.White,
-                    Font = new Font("Segoe UI", 10f, FontStyle.Bold),
-                    Cursor = Cursors.Hand
-                };
-                closeButton.FlatAppearance.BorderSize = 0;
-                closeButton.Click += (s, e) => form.Close();
-
-                bottomPanel.Controls.Add(closeButton);
-                bottomPanel.Resize += (s, e) =>
-                {
-                    closeButton.Left = (bottomPanel.ClientSize.Width - closeButton.Width) / 2;
-                    closeButton.Top = (bottomPanel.ClientSize.Height - closeButton.Height) / 2;
-                };
-                bottomPanel.PerformLayout();
-                root.Controls.Add(bottomPanel, 0, 2);
-
-                form.Controls.Add(root);
-                form.AcceptButton = closeButton;
-
-                form.FormClosed += (s, e) =>
-                {
-                    if (picture.Image != null)
-                    {
-                        picture.Image.Dispose();
-                    }
-                };
-
-                form.ShowDialog();
+                    _infoForm.WindowState = FormWindowState.Normal;
+                }
+                _infoForm.Activate();
+                return;
             }
+
+            _infoForm = new Form();
+            var form = _infoForm;
+
+            form.Text = "Clipboard Typer Info";
+            form.StartPosition = FormStartPosition.CenterScreen;
+            form.Size = new Size(720, 880);
+            form.FormBorderStyle = FormBorderStyle.FixedDialog;
+            form.MaximizeBox = false;
+            form.MinimizeBox = false;
+            form.BackColor = Color.FromArgb(245, 247, 250);
+            form.AutoScaleMode = AutoScaleMode.Dpi;
+
+            var bannerImage = LoadBannerImage();
+
+            var root = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 3,
+                BackColor = form.BackColor
+            };
+            root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 280f));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64f));
+
+            var picture = new PictureBox
+            {
+                Image = bannerImage,
+                Dock = DockStyle.Fill,
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BackColor = Color.Black,
+                Margin = new Padding(0)
+            };
+            root.Controls.Add(picture, 0, 0);
+
+            var scrollPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                BackColor = form.BackColor,
+                Padding = new Padding(18, 14, 18, 10)
+            };
+
+            var card = new TableLayoutPanel
+            {
+                ColumnCount = 1,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Dock = DockStyle.Top,
+                BackColor = Color.White,
+                Padding = new Padding(18, 16, 18, 16),
+                Margin = new Padding(0)
+            };
+            card.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+
+            AddRow(card, new Label
+            {
+                Text = "CLIPBOARD TYPER " + VersionLabel,
+                Font = new Font("Segoe UI", 18f, FontStyle.Bold),
+                ForeColor = Color.FromArgb(32, 32, 32),
+                AutoSize = true,
+                Dock = DockStyle.Top,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Margin = new Padding(0, 0, 0, 4)
+            });
+
+            AddRow(card, new Label
+            {
+                Text = "Types your clipboard with a configurable delay and pace.",
+                Font = new Font("Segoe UI", 10.5f, FontStyle.Regular),
+                ForeColor = Color.FromArgb(80, 80, 80),
+                AutoSize = true,
+                Dock = DockStyle.Top,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Margin = new Padding(0, 0, 0, 14)
+            });
+
+            var tableLayoutPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                ColumnCount = 2,
+                BackColor = Color.Transparent,
+                CellBorderStyle = TableLayoutPanelCellBorderStyle.None,
+                Padding = new Padding(4),
+                Margin = new Padding(0, 0, 0, 12)
+            };
+            tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42F));
+            tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 58F));
+
+            AddInfoRow(tableLayoutPanel, "Hotkey", HotkeyLabel(), Color.FromArgb(32, 32, 32), FontStyle.Bold);
+            AddInfoRow(tableLayoutPanel, "Current delay", string.Format("{0} ms", _delayMs), Color.FromArgb(32, 32, 32));
+            AddInfoRow(tableLayoutPanel, "Typing speed", string.Format("{0} ms/char", _perCharDelayMs), Color.FromArgb(32, 32, 32));
+            AddInfoRow(tableLayoutPanel, "Start with Windows", IsStartupEnabled() ? "Enabled" : "Disabled", Color.FromArgb(32, 32, 32));
+
+            AddRow(card, tableLayoutPanel);
+
+            AddRow(card, CreateSectionLabel("Repo & support"));
+            AddRow(card, CreateLinkLabel("https://github.com/wmostert76/clipboard-typer", "https://github.com/wmostert76/clipboard-typer"));
+
+            AddRow(card, CreateSectionLabel("Quick tips"));
+            AddRow(card, CreateBulletLabel("Left-click the tray icon to reopen this info box."));
+            AddRow(card, CreateBulletLabel("Right-click the tray icon for delay and typing-speed presets."));
+            AddRow(card, CreateBulletLabel("Use \"Start met Windows\" if you want it always ready after login."));
+            AddRow(card, CreateBulletLabel("Keystrokes are sent as Unicode, so emoji and accents work where paste is blocked."));
+
+            AddRow(card, CreateSectionLabel("About"));
+            AddRow(card, new Label
+            {
+                Text = "Made by WAM-Software (c) since 1997",
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Regular),
+                ForeColor = Color.FromArgb(70, 70, 70),
+                AutoSize = true,
+                Margin = new Padding(0, 10, 0, 0)
+            });
+
+            var cardHost = new Panel
+            {
+                Dock = DockStyle.Top,
+                BackColor = form.BackColor,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink
+            };
+            card.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            cardHost.Controls.Add(card);
+            scrollPanel.Controls.Add(cardHost);
+
+            root.Controls.Add(scrollPanel, 0, 1);
+
+            var bottomPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(38, 43, 51)
+            };
+
+            var closeButton = new Button
+            {
+                Text = "Close",
+                AutoSize = false,
+                Width = 130,
+                Height = 38,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(64, 132, 255),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10f, FontStyle.Bold),
+                Cursor = Cursors.Hand
+            };
+            closeButton.FlatAppearance.BorderSize = 0;
+            closeButton.Click += (s, e) => form.Close();
+
+            bottomPanel.Controls.Add(closeButton);
+            bottomPanel.Resize += (s, e) =>
+            {
+                closeButton.Left = (bottomPanel.ClientSize.Width - closeButton.Width) / 2;
+                closeButton.Top = (bottomPanel.ClientSize.Height - closeButton.Height) / 2;
+            };
+            bottomPanel.PerformLayout();
+            root.Controls.Add(bottomPanel, 0, 2);
+
+            form.Controls.Add(root);
+            form.AcceptButton = closeButton;
+
+            form.FormClosed += (s, e) =>
+            {
+                if (picture.Image != null)
+                {
+                    picture.Image.Dispose();
+                }
+                _infoForm = null;
+            };
+
+            form.Show();
         }
 
         private void AddInfoRow(TableLayoutPanel table, string key, string value, Color valueColor, FontStyle valueStyle = FontStyle.Regular)
