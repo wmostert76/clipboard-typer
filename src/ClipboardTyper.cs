@@ -38,7 +38,7 @@ namespace ClipboardTyper
         private const uint MOD_SHIFT = 0x0004;
         private const uint MOD_WIN = 0x0008;
 
-        private const string VersionLabel = "v0.6";
+        private const string VersionLabel = "v0.8";
         private NotifyIcon _tray;
         private ContextMenuStrip _menu;
         private int _delayMs = 5000;
